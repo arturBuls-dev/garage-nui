@@ -1,0 +1,236 @@
+:root {
+  /* Black and yellow palette inspired by Rockstar (colors only, no logos or brand names) */
+  --bg: #0b0b0c;
+  --bg-card: #151517;
+  --bg-card-hover: #1b1b1e;
+  --border: #2a2a2e;
+  --text: #f4f4f5;
+  --muted: #8a8a92;
+  --accent: #fcaf17;
+  --accent-soft: rgba(252, 175, 23, 0.18);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* The page background must be transparent, otherwise it covers the whole game */
+html, body, #root {
+  height: 100%;
+  background: transparent;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: var(--text);
+  user-select: none;
+}
+
+#root { display: flex; align-items: center; justify-content: center; }
+
+/* Browser development mode: imitate the game */
+html.dev, html.dev body { background: linear-gradient(135deg, #3a4150, #1c2028); }
+.dev-open {
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* ---------- Window ---------- */
+.panel {
+  width: 820px;
+  max-width: 94vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: 14px;
+  padding: 22px 22px 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
+  animation: panel-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.eyebrow {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.panel-header h1 { font-size: 26px; font-weight: 700; letter-spacing: 0.02em; }
+
+.close {
+  width: 34px; height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.close:hover { color: var(--accent); border-color: var(--accent); transform: rotate(90deg); }
+
+/* ---------- Cards ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  cursor: pointer;
+  /* Each next card appears a bit later (--i is set by React) */
+  animation: card-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i) * 70ms + 120ms);
+  transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Shine that sweeps across the card on hover */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.09) 50%, transparent 65%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.card:hover::after { transform: translateX(120%); transition: transform 0.7s ease; }
+
+.card:hover {
+  transform: translateY(-5px);
+  background: var(--bg-card-hover);
+  border-color: var(--accent);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--accent-soft), 0 0 26px var(--accent-soft);
+}
+.card:active { transform: translateY(-1px) scale(0.985); }
+.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Stage: back wall with a glow and the floor the vehicle stands on */
+.stage {
+  position: relative;
+  width: 100%;
+  height: 156px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 62%, var(--accent-soft), transparent 62%);
+}
+
+/* Floor: lower part of the stage, lighter than the wall, with a horizon line */
+.stage::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 88px;
+  background: linear-gradient(to bottom, #34343a 0%, #1d1d21 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 14px 22px -14px rgba(252, 175, 23, 0.2);
+  transition: border-color 0.3s ease;
+  z-index: 0;
+}
+.card:hover .stage::before { border-top-color: rgba(252, 175, 23, 0.55); }
+
+/* The shadow lies on the floor right under the wheels, along the whole vehicle */
+.stage::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  width: 86%;
+  height: 46px;
+  margin-left: -43%;
+  border-radius: 50%;
+  transform: rotate(-9deg);
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.55) 48%, transparent 75%);
+  z-index: 0;
+}
+
+/* Vehicle: wheels sit inside the floor and the shadow (bottom is tuned to the lowest wheel point) */
+.car {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 20px;
+  width: 80%;
+  max-height: 104px;
+  object-fit: contain;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* On hover the vehicle grows slightly from the wheels and stays on the floor */
+.card:hover .car { transform: translateX(-50%) scale(1.06); }
+
+.info {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border);
+}
+.card-name { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; }
+.card-action {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}
+.card-action i { display: inline-block; font-style: normal; transition: transform 0.25s ease; }
+.card:hover .card-action i { transform: translateX(5px); }
+
+/* ---------- Animations ---------- */
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Respect the system "reduce motion" setting */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Favorites (star) ---------- */
+.star {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(11, 11, 12, 0.6);
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+.star:hover { color: var(--accent); transform: scale(1.15); background: rgba(11, 11, 12, 0.85); }
+.star.on { color: var(--accent); }
