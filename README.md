@@ -4,6 +4,8 @@ A vehicle garage window for FiveM (Qbox), built with React + TypeScript, with a 
 
 Players open a card-based menu, pick a vehicle, and the **server** spawns it, hands out the keys and seats the player. Favorite vehicles are stored in the database per character and shown first.
 
+https://github.com/user-attachments/assets/38794720-97bd-45f4-b5d7-ee6c385119f4
+
 ## Features
 
 - Modern NUI built with React, Vite and TypeScript (animated cards, black and yellow theme).
