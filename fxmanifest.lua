@@ -2,8 +2,8 @@ fx_version 'cerulean'
 game 'gta5'
 
 author 'Arthur.dev'
-description 'Vehicle garage NUI with favorites, server-side spawn and key handling'
-version '1.0.0'
+description 'Vehicle garage NUI for Qbox, ESX and QBCore with favorites, server-side spawn and key handling'
+version '1.1.0'
 
 lua54 'yes'
 
@@ -17,6 +17,7 @@ shared_scripts {
 client_script 'client.lua'
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
+    'bridge/server.lua',
     'server.lua',
 }
 

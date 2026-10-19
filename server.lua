@@ -54,8 +54,8 @@ local function spawnVehicle(src, model)
 
     -- 6. Seat the player and hand out the keys
     TriggerClientEvent('garage_nui:enterVehicle', src, NetworkGetNetworkIdFromEntity(vehicle))
-    exports.qbx_vehiclekeys:GiveKeys(src, vehicle, true)
-    lib.notify(src, { type = 'success', description = 'Spawned with keys: ' .. model })
+    Bridge.giveKeys(src, vehicle)
+    lib.notify(src, { type = 'success', description = 'Spawned: ' .. model })
 end
 
 lib.addCommand('mycar', {
@@ -92,24 +92,29 @@ end)
 
 -- ---------- Favorite vehicles (database) ----------
 
--- The table is created automatically on first start. The (character, model) key prevents duplicates
+-- The table is created automatically on first start. The (owner, model) key prevents duplicates.
+-- "owner" is the character id of the active framework (citizenid on Qbox and QBCore, identifier on ESX).
 MySQL.ready(function()
     MySQL.query.await([[
         CREATE TABLE IF NOT EXISTS garage_nui_favorites (
-            citizenid VARCHAR(50) NOT NULL,
+            owner VARCHAR(80) NOT NULL,
             model VARCHAR(50) NOT NULL,
-            PRIMARY KEY (citizenid, model)
+            PRIMARY KEY (owner, model)
         )
     ]])
+
+    -- Version 1.0 named the column "citizenid": rename it once so saved favorites are kept
+    local oldColumn = MySQL.scalar.await([[
+        SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'garage_nui_favorites' AND COLUMN_NAME = 'citizenid'
+    ]])
+    if oldColumn and oldColumn > 0 then
+        MySQL.query.await('ALTER TABLE garage_nui_favorites CHANGE citizenid owner VARCHAR(80) NOT NULL')
+    end
 end)
 
-local function getCitizenId(src)
-    local player = exports.qbx_core:GetPlayer(src)
-    return player and player.PlayerData.citizenid
-end
-
-local function getFavorites(citizenid)
-    local rows = MySQL.query.await('SELECT model FROM garage_nui_favorites WHERE citizenid = ?', { citizenid })
+local function getFavorites(owner)
+    local rows = MySQL.query.await('SELECT model FROM garage_nui_favorites WHERE owner = ?', { owner })
     local list = {}
     for _, row in ipairs(rows or {}) do
         list[#list + 1] = row.model
@@ -118,28 +123,28 @@ local function getFavorites(citizenid)
 end
 
 lib.callback.register('garage_nui:getFavorites', function(source)
-    local citizenid = getCitizenId(source)
-    if not citizenid then return {} end
-    return getFavorites(citizenid)
+    local owner = Bridge.getIdentifier(source)
+    if not owner then return {} end
+    return getFavorites(owner)
 end)
 
 -- Add or remove a favorite. Returns the updated list
 lib.callback.register('garage_nui:toggleFavorite', function(source, model)
     local src = source
-    local citizenid = getCitizenId(src)
-    if not citizenid or type(model) ~= 'string' then return {} end
+    local owner = Bridge.getIdentifier(src)
+    if not owner or type(model) ~= 'string' then return {} end
 
     model = model:lower()
-    if not allowed[model] then return getFavorites(citizenid) end -- whitelisted models only
+    if not allowed[model] then return getFavorites(owner) end -- whitelisted models only
 
     local exists = MySQL.scalar.await(
-        'SELECT 1 FROM garage_nui_favorites WHERE citizenid = ? AND model = ?', { citizenid, model })
+        'SELECT 1 FROM garage_nui_favorites WHERE owner = ? AND model = ?', { owner, model })
     if exists then
-        MySQL.update.await('DELETE FROM garage_nui_favorites WHERE citizenid = ? AND model = ?', { citizenid, model })
+        MySQL.update.await('DELETE FROM garage_nui_favorites WHERE owner = ? AND model = ?', { owner, model })
     else
-        MySQL.insert.await('INSERT INTO garage_nui_favorites (citizenid, model) VALUES (?, ?)', { citizenid, model })
+        MySQL.insert.await('INSERT INTO garage_nui_favorites (owner, model) VALUES (?, ?)', { owner, model })
     end
-    return getFavorites(citizenid)
+    return getFavorites(owner)
 end)
 
 -- Player left: clean up their data

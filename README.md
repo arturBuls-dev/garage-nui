@@ -1,6 +1,6 @@
 # garage-nui
 
-A vehicle garage window for FiveM (Qbox), built with React + TypeScript, with a server-authoritative backend.
+A vehicle garage window for FiveM (Qbox, ESX and QBCore), built with React + TypeScript, with a server-authoritative backend.
 
 Players open a card-based menu, pick a vehicle, and the **server** spawns it, hands out the keys and seats the player. Favorite vehicles are stored in the database per character and shown first.
 
@@ -28,11 +28,21 @@ https://github.com/user-attachments/assets/38794720-97bd-45f4-b5d7-ee6c385119f4
 
 ## Requirements
 
-- [qbx_core](https://github.com/Qbox-project/qbx_core), [qbx_vehiclekeys](https://github.com/Qbox-project/qbx_vehiclekeys)
 - [ox_lib](https://github.com/overextended/ox_lib), [oxmysql](https://github.com/overextended/oxmysql)
+- One framework, detected automatically: Qbox ([qbx_core](https://github.com/Qbox-project/qbx_core)), ESX (es_extended) or QBCore (qb-core). Without any of them it runs standalone.
+- Keys: [qbx_vehiclekeys](https://github.com/Qbox-project/qbx_vehiclekeys) on Qbox, or your own key script through a small hook (see Configuration).
 - Node.js (only to build the UI)
 
-Developed and tested on Qbox with FiveM build 3258. There is no ESX or QBCore bridge yet.
+## Framework support
+
+| Framework | Status |
+| --- | --- |
+| Qbox | Tested in game (FiveM build 3258) |
+| ESX | Implemented, **not tested yet** |
+| QBCore | Implemented, **not tested yet** |
+| Standalone | Implemented, not tested yet (favorites are stored per account license) |
+
+All framework specific code lives in `bridge/server.lua` (two functions: who is this player, and give the keys). Nothing else in the resource knows which framework is running.
 
 ## Installation
 
@@ -61,12 +71,17 @@ See [config.lua](config.lua).
 
 ```lua
 Config = {
-    permission = 'group.admin',
+    framework = "auto",          -- or "qbox", "esx", "qb", "standalone"
+    keys = "auto",               -- "qbx_vehiclekeys", "custom" or "none"
+    giveKeys = nil,              -- function(src, vehicle) used when keys = "custom"
+    permission = "group.admin",
     cooldown = 5,
-    defaultModel = 'adder',
-    models = { 'adder', 'sultan', 'kuruma', 'comet2', 'buffalo', 'dominator' },
+    defaultModel = "adder",
+    models = { "adder", "sultan", "kuruma", "comet2", "buffalo", "dominator" },
 }
 ```
+
+ESX has no standard key script. Use `keys = "custom"` and write the call of your own script in `giveKeys`, or `keys = "none"` to leave the spawned vehicle unlocked.
 
 To add a vehicle, put its model name into `models`, add `web/public/cars/<model>.webp`, and rebuild the UI.
 
